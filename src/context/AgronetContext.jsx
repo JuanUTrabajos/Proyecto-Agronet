@@ -14,7 +14,9 @@ export const AgronetProvider = ({ children }) => {
     setLoading(true);
     try {
       const dataFincas = await fincasService.getAll();
-      setFincas(dataFincas || []);
+      if (dataFincas && dataFincas.length >= 0) {
+        setFincas(dataFincas.map((f) => ({ ...f, id: f.fincaId ?? f.id })));
+      }
       const dataCosechas = await cosechasService.getDisponibles();
       setCosechas(dataCosechas || []);
     } catch (error) {

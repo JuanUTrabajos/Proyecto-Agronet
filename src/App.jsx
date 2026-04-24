@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAgronet } from "./context/AgronetContext";
 import { fincasService } from "./services/fincasService";
+import { authService } from "./services/authService";
 
 import fondoImagen from "./assets/fondo.jpg";
 
@@ -344,25 +345,13 @@ function DashboardComprador({
   glassCardStyle,
 }) {
   const [seccionC, setSeccionC] = useState("catalogo");
-
-  // ✅ LIMPIO — ID arranca en 1, sin asumir pedidos previos quemados
   const [siguienteId, setSiguienteId] = useState(1);
-
-  // ✅ LIMPIO — Sin pedido inicial quemado; se llenará desde la API
   const [misPedidos, setMisPedidos] = useState([]);
-
-  // ✅ LIMPIO — Sin registro inicial quemado; se llenará desde la API
   const [trazabilidad, setTrazabilidad] = useState([]);
-
-  // --- Filtros catálogo ---
   const [filtroProducto, setFiltroProducto] = useState("");
   const [filtroMunicipio, setFiltroMunicipio] = useState("");
-
-  // --- Pedido en proceso ---
   const [productoSeleccionado, setProductoSeleccionado] = useState(null);
   const [cantidadPedido, setCantidadPedido] = useState("");
-
-  // --- Filtro mis pedidos ---
   const [filtroEstadoPedido, setFiltroEstadoPedido] = useState("Todos");
 
   const sidebarItemStyle = (activo) => ({
@@ -395,7 +384,6 @@ function DashboardComprador({
     );
   };
 
-  // --- Acción: hacer pedido ---
   const hacerPedido = () => {
     if (!cantidadPedido || Number(cantidadPedido) <= 0)
       return alert("Ingresa una cantidad válida.");
@@ -428,7 +416,6 @@ function DashboardComprador({
     setSeccionC("misPedidos");
   };
 
-  // --- Acción: cancelar pedido ---
   const cancelarPedido = (id) => {
     const pedido = misPedidos.find((p) => p.id === id);
     if (!pedido) return;
@@ -468,7 +455,6 @@ function DashboardComprador({
         select option { color: #333; background: #fff; }
       `}</style>
 
-      {/* ── Sidebar Comprador ── */}
       <div
         style={{
           width: "240px",
@@ -528,13 +514,9 @@ function DashboardComprador({
         </div>
       </div>
 
-      {/* ── Contenido Principal ── */}
       <div
         style={{ flex: 1, padding: "40px", overflowY: "auto", color: "#fff" }}
       >
-        {/* ============================================================
-            SECCIÓN COMPRADOR: CATÁLOGO DE PRODUCTOS
-        ============================================================ */}
         {seccionC === "catalogo" && (
           <div>
             <header style={{ marginBottom: "32px" }}>
@@ -565,7 +547,6 @@ function DashboardComprador({
               />
             </div>
 
-            {/* Modal hacer pedido */}
             {productoSeleccionado && (
               <div
                 style={{
@@ -751,9 +732,6 @@ function DashboardComprador({
           </div>
         )}
 
-        {/* ============================================================
-            SECCIÓN COMPRADOR: MIS PEDIDOS
-        ============================================================ */}
         {seccionC === "misPedidos" && (
           <div>
             <header style={{ marginBottom: "32px" }}>
@@ -906,9 +884,6 @@ function DashboardComprador({
           </div>
         )}
 
-        {/* ============================================================
-            SECCIÓN COMPRADOR: TRAZABILIDAD
-        ============================================================ */}
         {seccionC === "trazabilidad" && (
           <div>
             <header style={{ marginBottom: "32px" }}>
@@ -1044,8 +1019,6 @@ function DashboardComprador({
 // --- 🚀 COMPONENTE PRINCIPAL ---
 
 function App() {
-  // ✅ CAMBIO 1 — Conectado al contexto: fincas, cosechas, loading y cargarDatosInciales
-  //    vienen del AgronetContext en lugar de useState local
   const { fincas, setFincas, cosechas, setCosechas, cargarDatosInciales } =
     useAgronet();
 
@@ -1053,28 +1026,75 @@ function App() {
   const [esRegistro, setEsRegistro] = useState(false);
   const [seccion, setSeccion] = useState("dashboard");
   const [mostrarLogin, setMostrarLogin] = useState(false);
-
-  // --- 🧩 MÓDULO COMPRADOR: rol del usuario activo ---
   const [rolUsuario, setRolUsuario] = useState("");
 
-  // --- 🧩 MÓDULO COMPRADOR: mapa de correos registrados { correo -> rol }
-  //     Incluye dos correos de demo para pruebas rápidas.
-  const [usuariosRegistrados, setUsuariosRegistrados] = useState({
-    "agricultor@demo.com": "1",
-    "comprador@demo.com": "2",
-  });
-
-  // ✅ CAMBIO 3 — Carga inicial: llama a cargarDatosInciales() al montar el componente
   useEffect(() => {
     cargarDatosInciales();
   }, [cargarDatosInciales]);
 
-  // --- 🧠 ESTADOS CRUD ---
-
-  // ✅ LIMPIO — Sin pedido quemado; se llenará desde la API
   const [pedidos] = useState([]);
 
-  // Estados de Formularios
+  const [formData, setFormData] = useState({
+    nombre: "",
+    correo: "",
+    telefono: "",
+    password: "",
+    rol: "2",
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    if (esRegistro) {
+      try {
+        await authService.registrar({
+          idRol: parseInt(formData.rol) || 2,
+          nombre: formData.nombre,
+          correo: formData.correo,
+          telefono: formData.telefono,
+          password: formData.password,
+        });
+
+        alert("¡Usuario guardado en la base de datos MySQL!");
+        setFormData({
+          nombre: "",
+          correo: "",
+          telefono: "",
+          password: "",
+          rol: "2",
+        });
+        setEsRegistro(false);
+      } catch (error) {
+        alert("Error al registrar en la API: " + error.message);
+      }
+    } else {
+      try {
+        const token = await authService.login({
+          correo: formData.correo,
+          password: formData.password,
+        });
+
+        const tokenValue = typeof token === "object" ? token.token : token;
+        localStorage.setItem("agronet_token", tokenValue);
+
+        // Decodificar el token para obtener el rol
+        const payload = JSON.parse(atob(tokenValue.split(".")[1]));
+        const rol =
+          payload[
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+          ] || "";
+        setRolUsuario(String(rol));
+        setLogeado(true);
+      } catch (error) {
+        alert("Error al iniciar sesión: " + error.message);
+      }
+    }
+  };
+
   const [formFinca, setFormFinca] = useState({
     id: null,
     nombre: "",
@@ -1093,14 +1113,12 @@ function App() {
     estado: "Disponible",
   });
 
-  // Búsqueda y Filtros
   const [busquedaFincaNombre, setBusquedaFincaNombre] = useState("");
   const [busquedaFincaId, setBusquedaFincaId] = useState("");
   const [busquedaCosechaNombre, setBusquedaCosechaNombre] = useState("");
   const [busquedaCosechaId, setBusquedaCosechaId] = useState("");
   const [filtroPedido, setFiltroPedido] = useState("Todos");
 
-  // --- 🎨 ESTILOS ---
   const containerStyle = {
     fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     backgroundColor: "#1b5e20",
@@ -1155,33 +1173,41 @@ function App() {
 
   // --- 🛠️ LÓGICA CRUD ---
 
-  // ✅ CAMBIO 2 — guardarFinca es ahora async y llama a fincasService.create()
-  //    antes de actualizar el estado local cuando es una finca nueva
+  // ✅ guardarFinca: detecta si es edición o creación
   const guardarFinca = async () => {
-    if (!formFinca.nombre || !formFinca.municipio)
+    if (!formFinca.nombre || !formFinca.municipio) {
       return alert("Completa los campos");
+    }
 
     try {
-      // Creamos el objeto con las MAYÚSCULAS que pide tu DB
-      const fincaParaEnviar = {
-        Nombre: formFinca.nombre,
-        Municipio: formFinca.municipio,
-        Direccion: formFinca.direccion,
-        Latitud: parseFloat(formFinca.latitud) || 0,
-        Longitud: parseFloat(formFinca.longitud) || 0,
-        // No envíes FincaId ni IdUsuario, el Backend los pone solo.
-      };
-
       if (formFinca.id) {
-        // Lógica de actualizar (si ya la tienes)
+        // EDICIÓN — llama a update
+        const actualizada = await fincasService.update(formFinca.id, formFinca);
+        const fincaNormalizada = {
+          ...actualizada,
+          id: actualizada.fincaId ?? actualizada.id,
+        };
+        setFincas(
+          fincas.map((f) => (f.id === formFinca.id ? fincaNormalizada : f)),
+        );
+        alert("Finca actualizada!");
+        await cargarDatosInciales();
       } else {
-        // Enviamos a la API de Render
+        // CREACIÓN — llama a create
+        const fincaParaEnviar = {
+          nombre: formFinca.nombre,
+          municipio: formFinca.municipio,
+          direccion: formFinca.direccion,
+          latitud: parseFloat(formFinca.latitud) || 0,
+          longitud: parseFloat(formFinca.longitud) || 0,
+        };
         const creada = await fincasService.create(fincaParaEnviar);
-        setFincas([...fincas, creada]);
-        alert("¡Finca registrada exitosamente!");
+        const fincaNormalizada = { ...creada, id: creada.fincaId ?? creada.id };
+        setFincas([...fincas, fincaNormalizada]);
+        alert("Finca guardada exitosamente en la nube!");
+        await cargarDatosInciales();
       }
 
-      // Limpiamos el formulario (aquí sí usas tus variables de estado en minúscula)
       setFormFinca({
         id: null,
         nombre: "",
@@ -1191,13 +1217,20 @@ function App() {
         longitud: "",
       });
     } catch (error) {
-      console.error("Error detallado:", error);
-      alert(
-        "Error al conectar con Render. Revisa que el servidor no esté 'dormido'.",
-      );
+      console.error("Error al guardar:", error);
+      alert("Error: " + error.message);
     }
   };
-  const eliminarFinca = (id) => setFincas(fincas.filter((f) => f.id !== id));
+
+  // ✅ eliminarFinca: llama al backend y luego actualiza el estado local
+  const eliminarFinca = async (id) => {
+    try {
+      await fincasService.delete(id);
+      setFincas(fincas.filter((f) => f.id !== id));
+    } catch (error) {
+      alert("Error al eliminar: " + error.message);
+    }
+  };
 
   const guardarCosecha = () => {
     if (!formCosecha.finca || !formCosecha.producto)
@@ -1228,27 +1261,6 @@ function App() {
     if (!mostrarLogin) {
       return <LandingPage alIniciarSesion={() => setMostrarLogin(true)} />;
     } else {
-      // 🧩 MÓDULO COMPRADOR: manejador del formulario de auth
-      // — Registro: guarda correo+rol en el mapa de usuarios
-      // — Login: busca el correo en el mapa y asigna su rol
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        const correo = e.target.correo.value.trim().toLowerCase();
-
-        if (esRegistro) {
-          const rolSeleccionado = e.target.rol.value || "1";
-          setUsuariosRegistrados((prev) => ({
-            ...prev,
-            [correo]: rolSeleccionado,
-          }));
-          setRolUsuario(rolSeleccionado);
-        } else {
-          const rolEncontrado = usuariosRegistrados[correo] || "1";
-          setRolUsuario(rolEncontrado);
-        }
-        setLogeado(true);
-      };
-
       return (
         <div style={containerStyle}>
           <div
@@ -1286,23 +1298,28 @@ function App() {
                 <>
                   <input
                     type="text"
+                    name="nombre"
                     placeholder="Nombre completo"
                     style={{
                       ...inputStyle,
                       color: "#333",
                       backgroundColor: "white",
                     }}
+                    value={formData.nombre}
+                    onChange={handleChange}
                   />
                   <input
                     type="tel"
+                    name="telefono"
                     placeholder="Teléfono"
                     style={{
                       ...inputStyle,
                       color: "#333",
                       backgroundColor: "white",
                     }}
+                    value={formData.telefono}
+                    onChange={handleChange}
                   />
-                  {/* 🧩 MÓDULO COMPRADOR: select de rol, solo visible en registro, name="rol" */}
                   <select
                     name="rol"
                     style={{
@@ -1310,6 +1327,8 @@ function App() {
                       color: "#333",
                       backgroundColor: "rgba(255, 255, 255, 0.8)",
                     }}
+                    value={formData.rol}
+                    onChange={handleChange}
                   >
                     <option value="">¿Tu rol en el campo?</option>
                     <option value="1">Agricultor</option>
@@ -1317,7 +1336,7 @@ function App() {
                   </select>
                 </>
               )}
-              {/* name="correo" para leerlo en handleSubmit */}
+
               <input
                 type="email"
                 name="correo"
@@ -1327,16 +1346,21 @@ function App() {
                   color: "#333",
                   backgroundColor: "white",
                 }}
+                value={formData.correo}
+                onChange={handleChange}
                 required
               />
               <input
                 type="password"
+                name="password"
                 placeholder="Contraseña segura"
                 style={{
                   ...inputStyle,
                   color: "#333",
                   backgroundColor: "white",
                 }}
+                value={formData.password}
+                onChange={handleChange}
                 required
               />
               <button type="submit" style={buttonStyle}>
@@ -1378,7 +1402,6 @@ function App() {
     }
   }
 
-  // --- 🧩 MÓDULO COMPRADOR: enrutamiento por rol ---
   if (logeado && rolUsuario === "2") {
     return (
       <DashboardComprador
@@ -1395,7 +1418,6 @@ function App() {
     );
   }
 
-  // --- DASHBOARD: Estructura principal con Sidebar + Contenido principal ---
   return (
     <div style={containerStyle}>
       <style>{`
@@ -1479,9 +1501,7 @@ function App() {
       <div
         style={{ flex: 1, padding: "40px", overflowY: "auto", color: "#fff" }}
       >
-        {/* ============================================================
-            SECCIÓN: DASHBOARD
-        ============================================================ */}
+        {/* SECCIÓN: DASHBOARD */}
         {seccion === "dashboard" && (
           <>
             <header style={{ marginBottom: "40px" }}>
@@ -1498,7 +1518,6 @@ function App() {
                 marginBottom: "40px",
               }}
             >
-              {/* ✅ LIMPIO — Ventas Totales calculadas desde pedidos reales */}
               <div style={glassCardStyle}>
                 <p style={{ color: "#ccc", fontSize: "0.85rem", margin: 0 }}>
                   Ventas Totales
@@ -1551,7 +1570,6 @@ function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* ✅ LIMPIO — Actividad reciente desde pedidos reales */}
                   {pedidos.length === 0 ? (
                     <tr>
                       <td
@@ -1599,9 +1617,7 @@ function App() {
           </>
         )}
 
-        {/* ============================================================
-            SECCIÓN: MIS FINCAS
-        ============================================================ */}
+        {/* SECCIÓN: MIS FINCAS */}
         {seccion === "fincas" && (
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
             <div style={{ flex: "1", minWidth: "300px", maxWidth: "400px" }}>
@@ -1757,9 +1773,7 @@ function App() {
           </div>
         )}
 
-        {/* ============================================================
-            SECCIÓN: COSECHAS
-        ============================================================ */}
+        {/* SECCIÓN: COSECHAS */}
         {seccion === "cosechas" && (
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
             <div style={{ flex: "1", minWidth: "300px", maxWidth: "400px" }}>
@@ -1945,9 +1959,7 @@ function App() {
           </div>
         )}
 
-        {/* ============================================================
-            SECCIÓN: PEDIDOS
-        ============================================================ */}
+        {/* SECCIÓN: PEDIDOS */}
         {seccion === "pedidos" && (
           <div>
             <h1 style={{ marginBottom: "20px" }}>📦 Gestión de Pedidos</h1>
@@ -2047,7 +2059,6 @@ function App() {
                         </td>
                       </tr>
                     ))}
-                  {/* ✅ LIMPIO — Mensaje vacío si no hay pedidos */}
                   {pedidos.filter(
                     (p) =>
                       filtroPedido === "Todos" || p.estado === filtroPedido,

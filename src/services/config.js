@@ -1,5 +1,5 @@
 // src/services/config.js
-export const BASE_URL = ""; // Aquí pondrás la URL de tu API después
+export const BASE_URL = "https://agronet-z8yl.onrender.com";
 
 export const getHeaders = () => {
   const token = localStorage.getItem("agronet_token");
