@@ -17,7 +17,7 @@ export const AgronetProvider = ({ children }) => {
       if (dataFincas && dataFincas.length >= 0) {
         setFincas(dataFincas.map((f) => ({ ...f, id: f.fincaId ?? f.id })));
       }
-      const dataCosechas = await cosechasService.getDisponibles();
+      const dataCosechas = await cosechasService.getAll();
       setCosechas(dataCosechas || []);
     } catch (error) {
       console.error("Error en AgronetContext:", error);

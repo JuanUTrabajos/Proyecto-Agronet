@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useAgronet } from "./context/AgronetContext";
 import { fincasService } from "./services/fincasService";
 import { authService } from "./services/authService";
+import { cosechasService } from "./services/cosechasService";
+import { pedidosService } from "./services/pedidosService";
 
 import fondoImagen from "./assets/fondo.jpg";
 
@@ -345,6 +347,15 @@ function DashboardComprador({
   glassCardStyle,
 }) {
   const [seccionC, setSeccionC] = useState("catalogo");
+  const [catalogo, setCatalogo] = useState([]);
+
+  useEffect(() => {
+    cosechasService
+      .getCatalogo()
+      .then((data) => setCatalogo(data))
+      .catch((err) => console.error("Error al cargar catálogo:", err));
+  }, []);
+
   const [siguienteId, setSiguienteId] = useState(1);
   const [misPedidos, setMisPedidos] = useState([]);
   const [trazabilidad, setTrazabilidad] = useState([]);
@@ -384,36 +395,22 @@ function DashboardComprador({
     );
   };
 
-  const hacerPedido = () => {
+  // ✅ hacerPedido async — versión limpia sin código muerto
+  const hacerPedido = async () => {
     if (!cantidadPedido || Number(cantidadPedido) <= 0)
       return alert("Ingresa una cantidad válida.");
-    const nuevoPedido = {
-      id: siguienteId,
-      productoNombre: productoSeleccionado.producto,
-      finca: productoSeleccionado.finca,
-      cantidad: Number(cantidadPedido),
-      precio: productoSeleccionado.precio,
-      estado: "Pendiente",
-      fecha: new Date().toISOString().split("T")[0],
-    };
-    setMisPedidos([...misPedidos, nuevoPedido]);
-    setTrazabilidad([
-      ...trazabilidad,
-      {
-        id: siguienteId + 1,
-        pedidoId: nuevoPedido.id,
-        finca: nuevoPedido.finca,
-        producto: nuevoPedido.productoNombre,
-        estadoAnterior: "—",
-        estadoNuevo: "Pendiente",
-        fecha: nuevoPedido.fecha,
-        observacion: "Pedido creado por el comprador.",
-      },
-    ]);
-    setSiguienteId(siguienteId + 2);
-    setProductoSeleccionado(null);
-    setCantidadPedido("");
-    setSeccionC("misPedidos");
+    try {
+      await pedidosService.create({
+        idCosecha: productoSeleccionado.cosechaId,
+        cantidadSolicitada: Number(cantidadPedido),
+      });
+      alert("¡Pedido realizado exitosamente!");
+      setProductoSeleccionado(null);
+      setCantidadPedido("");
+      setSeccionC("misPedidos");
+    } catch (error) {
+      alert("Error al hacer el pedido: " + error.message);
+    }
   };
 
   const cancelarPedido = (id) => {
@@ -439,13 +436,17 @@ function DashboardComprador({
     setSiguienteId(siguienteId + 1);
   };
 
-  const catalogoFiltrado = cosechasDisponibles
+  const catalogoFiltrado = catalogo
     .filter((c) => c.estado === "Disponible")
     .filter((c) =>
-      c.producto.toLowerCase().includes(filtroProducto.toLowerCase()),
+      (c.productoNombre || "")
+        .toLowerCase()
+        .includes(filtroProducto.toLowerCase()),
     )
     .filter((c) =>
-      (c.municipio || "").toLowerCase().includes(filtroMunicipio.toLowerCase()),
+      (c.fincaNombre || "")
+        .toLowerCase()
+        .includes(filtroMunicipio.toLowerCase()),
     );
 
   return (
@@ -578,8 +579,8 @@ function DashboardComprador({
                       marginBottom: "20px",
                     }}
                   >
-                    {productoSeleccionado.producto} —{" "}
-                    {productoSeleccionado.finca}
+                    {productoSeleccionado.productoNombre} —{" "}
+                    {productoSeleccionado.fincaNombre}
                   </p>
                   <p
                     style={{
@@ -590,7 +591,7 @@ function DashboardComprador({
                   >
                     Precio unitario:{" "}
                     <strong style={{ color: "#4ade80" }}>
-                      ${productoSeleccionado.precio?.toLocaleString()}
+                      ${productoSeleccionado.precioPorUnidad?.toLocaleString()}
                     </strong>
                   </p>
                   <input
@@ -613,8 +614,9 @@ function DashboardComprador({
                       <strong>
                         $
                         {(
-                          Number(cantidadPedido) * productoSeleccionado.precio
-                        ).toLocaleString()}
+                          Number(cantidadPedido) *
+                          Number(productoSeleccionado.precioPorUnidad)
+                        ).toLocaleString("es-CO")}
                       </strong>
                     </p>
                   )}
@@ -659,7 +661,7 @@ function DashboardComprador({
               >
                 {catalogoFiltrado.map((c) => (
                   <div
-                    key={c.id}
+                    key={c.cosechaId}
                     style={{
                       ...glassCardStyle,
                       display: "flex",
@@ -667,17 +669,9 @@ function DashboardComprador({
                       gap: "10px",
                     }}
                   >
-                    <div style={{ fontSize: "2rem" }}>
-                      {c.producto === "Café"
-                        ? "☕"
-                        : c.producto === "Cacao"
-                          ? "🍫"
-                          : c.producto === "Aguacate"
-                            ? "🥑"
-                            : "🌾"}
-                    </div>
+                    <div style={{ fontSize: "2rem" }}>🌿</div>
                     <h3 style={{ margin: 0, color: "#ccff00" }}>
-                      {c.producto}
+                      {c.productoNombre}
                     </h3>
                     <p
                       style={{
@@ -686,7 +680,7 @@ function DashboardComprador({
                         fontSize: "0.85rem",
                       }}
                     >
-                      🏡 {c.finca}
+                      🏡 {c.fincaNombre}
                     </p>
                     {c.municipio && (
                       <p
@@ -704,7 +698,7 @@ function DashboardComprador({
                     >
                       Disponible:{" "}
                       <strong style={{ color: "#4ade80" }}>
-                        {c.cantidad} Kg/L
+                        {c.cantidadDisponible} Kg/L
                       </strong>
                     </p>
                     <p
@@ -712,7 +706,7 @@ function DashboardComprador({
                     >
                       Precio:{" "}
                       <strong style={{ color: "#4ade80" }}>
-                        ${c.precio?.toLocaleString()} / unidad
+                        ${c.precioPorUnidad?.toLocaleString()} / unidad
                       </strong>
                     </p>
                     <button
@@ -1019,9 +1013,9 @@ function DashboardComprador({
 // --- 🚀 COMPONENTE PRINCIPAL ---
 
 function App() {
-  const { fincas, setFincas, cosechas, setCosechas, cargarDatosInciales } =
-    useAgronet();
-
+  const { fincas, setFincas, cargarDatosInciales } = useAgronet();
+  const [cosechas, setCosechas] = useState([]);
+  const [productos, setProductos] = useState([]);
   const [logeado, setLogeado] = useState(false);
   const [esRegistro, setEsRegistro] = useState(false);
   const [seccion, setSeccion] = useState("dashboard");
@@ -1030,7 +1024,18 @@ function App() {
 
   useEffect(() => {
     cargarDatosInciales();
-  }, [cargarDatosInciales]);
+
+    Promise.all([cosechasService.getProductos(), cosechasService.getAll()])
+      .then(([productosData, cosechasData]) => {
+        console.log("PRODUCTO[0]:", productosData[0]);
+        console.log("COSECHA[0]:", cosechasData[0]);
+        setProductos(productosData);
+        setCosechas(cosechasData);
+      })
+      .catch((error) => {
+        console.error("Error al cargar datos de cosechas:", error);
+      });
+  }, []);
 
   const [pedidos] = useState([]);
 
@@ -1081,7 +1086,6 @@ function App() {
         const tokenValue = typeof token === "object" ? token.token : token;
         localStorage.setItem("agronet_token", tokenValue);
 
-        // Decodificar el token para obtener el rol
         const payload = JSON.parse(atob(tokenValue.split(".")[1]));
         const rol =
           payload[
@@ -1089,6 +1093,14 @@ function App() {
           ] || "";
         setRolUsuario(String(rol));
         setLogeado(true);
+        Promise.all([cosechasService.getProductos(), cosechasService.getAll()])
+          .then(([productosData, cosechasData]) => {
+            setProductos(productosData);
+            setCosechas(cosechasData);
+          })
+          .catch((error) => {
+            console.error("Error al recargar cosechas:", error);
+          });
       } catch (error) {
         alert("Error al iniciar sesión: " + error.message);
       }
@@ -1173,7 +1185,6 @@ function App() {
 
   // --- 🛠️ LÓGICA CRUD ---
 
-  // ✅ guardarFinca: detecta si es edición o creación
   const guardarFinca = async () => {
     if (!formFinca.nombre || !formFinca.municipio) {
       return alert("Completa los campos");
@@ -1181,7 +1192,6 @@ function App() {
 
     try {
       if (formFinca.id) {
-        // EDICIÓN — llama a update
         const actualizada = await fincasService.update(formFinca.id, formFinca);
         const fincaNormalizada = {
           ...actualizada,
@@ -1193,7 +1203,6 @@ function App() {
         alert("Finca actualizada!");
         await cargarDatosInciales();
       } else {
-        // CREACIÓN — llama a create
         const fincaParaEnviar = {
           nombre: formFinca.nombre,
           municipio: formFinca.municipio,
@@ -1222,7 +1231,6 @@ function App() {
     }
   };
 
-  // ✅ eliminarFinca: llama al backend y luego actualiza el estado local
   const eliminarFinca = async (id) => {
     try {
       await fincasService.delete(id);
@@ -1232,29 +1240,121 @@ function App() {
     }
   };
 
-  const guardarCosecha = () => {
-    if (!formCosecha.finca || !formCosecha.producto)
-      return alert("Completa los campos");
-    if (formCosecha.id) {
-      setCosechas(
-        cosechas.map((c) => (c.id === formCosecha.id ? { ...formCosecha } : c)),
-      );
-    } else {
-      setCosechas([...cosechas, { ...formCosecha, id: Date.now() }]);
+  const guardarCosecha = async () => {
+    if (!formCosecha.finca || !formCosecha.producto) {
+      return alert("Por favor, selecciona una finca y un producto.");
     }
-    setFormCosecha({
-      id: null,
-      finca: "",
-      producto: "",
-      cantidad: "",
-      precio: "",
-      fecha: "",
-      estado: "Disponible",
-    });
+
+    const mapaProductos = {
+      "Manzana Roja": 1,
+      "Bananos Maduros": 2,
+      "Fresa Silvestre": 3,
+      "Piña Oro Miel": 4,
+      "Mango Tomy": 5,
+      "Uva Isabela": 6,
+      "Mora de Castilla": 7,
+      "Naranja Valencia": 8,
+      "Limón Tahití": 9,
+      "Papaya Maradol": 10,
+      "Tomate Chonto": 11,
+      "Cebolla Cabezona": 12,
+      "Zanahoria Premium": 13,
+      "Lechuga Crespa": 14,
+      "Brócoli Fresco": 15,
+      "Pimentón Rojo": 16,
+      "Pepino Cohombro": 17,
+      "Espinaca Bogotana": 18,
+      "Cebolla Larga": 19,
+      "Ajo Morado": 20,
+      "Arroz Blanco": 21,
+      "Frijol Cargamanto": 22,
+      "Lenteja Nacional": 23,
+      "Maíz Amarillo": 24,
+      "Arveja Seca": 25,
+      "Garbanzo Lechoso": 26,
+      "Cebada Perlada": 27,
+      "Trigo en Grano": 28,
+      "Frijol Bola Roja": 29,
+      "Avena en Hojuelas": 30,
+      "Papa Pastusa": 31,
+      "Yuca Armonía": 32,
+      "Papa Criolla": 33,
+      "Arracacha Amarilla": 34,
+      "Ñame Diamante": 35,
+      "Batata Dulce": 36,
+      "Papa Sabanera": 37,
+      "Yuca Parafinada": 38,
+      "Papa Capira": 39,
+      "Ulluco Fresco": 40,
+      "Fertilizante NPK": 41,
+      "Urea 46%": 42,
+      "Sustrato Orgánico": 43,
+      "Semillas de Tomate": 44,
+      "Insecticida Botánico": 45,
+      "Fungicida Cúprico": 46,
+      "Cal Agrícola": 47,
+      "Herbicida Selectivo": 48,
+      "Abono de Lombriz": 49,
+      Microrrizas: 50,
+    };
+
+    const idProducto = mapaProductos[formCosecha.producto];
+    if (!idProducto) return alert("Producto no reconocido.");
+
+    try {
+      const cosechaParaEnviar = {
+        idFinca: parseInt(formCosecha.finca),
+        idProducto: idProducto,
+        cantidadDisponible: parseFloat(formCosecha.cantidad),
+        precioPorUnidad: parseFloat(formCosecha.precio),
+        fechaEstimada: new Date(formCosecha.fecha).toISOString(),
+        estado: formCosecha.estado || "Disponible",
+      };
+
+      console.log("Enviando a la API:", cosechaParaEnviar);
+      if (formCosecha.id) {
+        await cosechasService.update(formCosecha.id, cosechaParaEnviar);
+        alert("¡Cosecha actualizada exitosamente!");
+      } else {
+        await cosechasService.create(cosechaParaEnviar);
+        alert("¡Cosecha guardada exitosamente!");
+      }
+
+      setFormCosecha({
+        id: null,
+        finca: "",
+        producto: "",
+        cantidad: "",
+        precio: "",
+        fecha: "",
+        estado: "Disponible",
+      });
+
+      if (typeof cargarDatosInciales === "function") {
+        await cargarDatosInciales();
+      }
+      const [nuevosProductos, nuevasCosechas] = await Promise.all([
+        cosechasService.getProductos(),
+        cosechasService.getAll(),
+      ]);
+      setProductos(nuevosProductos);
+      setCosechas(nuevasCosechas);
+    } catch (error) {
+      console.error("Error al guardar:", error);
+      alert(
+        "Error 400: El servidor rechazó los datos. Revisa la pestaña Network.",
+      );
+    }
   };
 
-  const eliminarCosecha = (id) =>
-    setCosechas(cosechas.filter((c) => c.id !== id));
+  const eliminarCosecha = async (id) => {
+    try {
+      await cosechasService.delete(id);
+      setCosechas(cosechas.filter((c) => c.cosechaId !== id));
+    } catch (error) {
+      alert("Error al eliminar: " + error.message);
+    }
+  };
 
   // --- RENDERIZADO CONDICIONAL ---
   if (!logeado) {
@@ -1789,12 +1889,14 @@ function App() {
                   }
                 >
                   <option value="">Seleccionar finca...</option>
-                  {fincas.map((f) => (
-                    <option key={f.id} value={f.nombre}>
-                      {f.nombre}
-                    </option>
-                  ))}
+                  {fincas &&
+                    fincas.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.nombreFinca || f.nombre}
+                      </option>
+                    ))}
                 </select>
+
                 <select
                   style={{ ...inputStyle, color: "#333", background: "white" }}
                   value={formCosecha.producto}
@@ -1802,11 +1904,15 @@ function App() {
                     setFormCosecha({ ...formCosecha, producto: e.target.value })
                   }
                 >
-                  <option value="">Producto...</option>
-                  <option value="Café">Café</option>
-                  <option value="Cacao">Cacao</option>
-                  <option value="Aguacate">Aguacate</option>
+                  <option value="">Seleccionar producto...</option>
+                  {productos &&
+                    productos.map((p) => (
+                      <option key={p.nombre} value={p.nombre}>
+                        {p.nombre}
+                      </option>
+                    ))}
                 </select>
+
                 <input
                   type="number"
                   placeholder="Cantidad (Kg/L)"
@@ -1841,9 +1947,13 @@ function App() {
                   }
                 >
                   <option value="Disponible">Disponible</option>
-                  <option value="En crecimiento">En crecimiento</option>
-                  <option value="Vendido">Vendido</option>
-                  <option value="Cancelado">Cancelado</option>
+                  {formCosecha.id && (
+                    <>
+                      <option value="Encrecimiento">En crecimiento</option>
+                      <option value="Vendidad">Vendido</option>
+                      <option value="Cancelada">Cancelado</option>
+                    </>
+                  )}
                 </select>
                 <button style={buttonStyle} onClick={guardarCosecha}>
                   {formCosecha.id ? "Actualizar" : "Publicar"}
@@ -1898,10 +2008,12 @@ function App() {
                   {cosechas
                     .filter(
                       (c) =>
-                        c.producto
+                        (c.productoNombre || "")
                           .toLowerCase()
                           .includes(busquedaCosechaNombre.toLowerCase()) &&
-                        c.id.toString().includes(busquedaCosechaId),
+                        (c.cosechaId ?? "")
+                          .toString()
+                          .includes(busquedaCosechaId),
                     )
                     .map((c) => (
                       <tr
@@ -1911,11 +2023,15 @@ function App() {
                           fontSize: "0.85rem",
                         }}
                       >
-                        <td style={{ padding: "10px" }}>{c.id}</td>
-                        <td style={{ padding: "10px" }}>{c.producto}</td>
-                        <td style={{ padding: "10px" }}>{c.finca}</td>
-                        <td style={{ padding: "10px" }}>{c.cantidad}</td>
-                        <td style={{ padding: "10px" }}>${c.precio}</td>
+                        <td style={{ padding: "10px" }}>{c.cosechaId}</td>
+                        <td style={{ padding: "10px" }}>{c.productoNombre}</td>
+                        <td style={{ padding: "10px" }}>{c.fincaNombre}</td>
+                        <td style={{ padding: "10px" }}>
+                          {c.cantidadDisponible}
+                        </td>
+                        <td style={{ padding: "10px" }}>
+                          ${c.precioPorUnidad}
+                        </td>
                         <td style={{ padding: "10px" }}>
                           <span
                             style={{
@@ -1930,7 +2046,23 @@ function App() {
                         </td>
                         <td style={{ padding: "10px" }}>
                           <button
-                            onClick={() => setFormCosecha(c)}
+                            onClick={() => {
+                              const fincaEncontrada = fincas.find(
+                                (f) =>
+                                  (f.nombre || f.nombreFinca) === c.fincaNombre,
+                              );
+                              setFormCosecha({
+                                id: c.cosechaId,
+                                finca: fincaEncontrada
+                                  ? fincaEncontrada.id
+                                  : "",
+                                producto: c.productoNombre,
+                                cantidad: c.cantidadDisponible,
+                                precio: c.precioPorUnidad,
+                                fecha: c.fechaEstimada?.split("T")[0],
+                                estado: c.estado,
+                              });
+                            }}
                             style={{
                               background: "none",
                               border: "none",
@@ -1940,7 +2072,7 @@ function App() {
                             ✏️
                           </button>
                           <button
-                            onClick={() => eliminarCosecha(c.id)}
+                            onClick={() => eliminarCosecha(c.cosechaId)}
                             style={{
                               background: "none",
                               border: "none",

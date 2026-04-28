@@ -16,5 +16,10 @@ export const handleResponse = async (response) => {
       errorData.message || "Error en la comunicación con Agronet",
     );
   }
-  return response.json();
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 };
