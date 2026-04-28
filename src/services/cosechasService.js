@@ -26,6 +26,7 @@ export const cosechasService = {
     });
     return handleResponse(res);
   },
+
   update: async (id, cosechaData) => {
     const res = await fetch(`${BASE_URL}/api/Cosecha/${id}`, {
       method: "PUT",
@@ -34,12 +35,16 @@ export const cosechasService = {
     });
     return handleResponse(res);
   },
+
+  // Catálogo con filtros opcionales: producto y municipio como query params
+  // Catálogo con filtros opcionales: producto y municipio como query params
   getCatalogo: async () => {
     const res = await fetch(`${BASE_URL}/api/Cosecha/Catalogo`, {
       headers: getHeaders(),
     });
     return handleResponse(res);
   },
+
   // 4. Eliminar una cosecha si fuera necesario
   delete: async (id) => {
     const res = await fetch(`${BASE_URL}/api/Cosecha/${id}`, {

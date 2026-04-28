@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAgronet } from "./context/AgronetContext";
 import { fincasService } from "./services/fincasService";
 import { authService } from "./services/authService";
@@ -21,7 +21,269 @@ const theme = {
 
 // --- 🏗️ COMPONENTE LANDING PAGE (DISEÑO CÓDIGO B + LÓGICA CÓDIGO A) ---
 
+function FaqSection() {
+  const [abierto, setAbierto] = useState(null);
+  const preguntas = [
+    {
+      p: "¿Es gratuito registrarse en Agronet?",
+      r: "Sí, el registro es completamente gratuito tanto para agricultores como para compradores. Puedes crear tu cuenta y empezar a usar la plataforma sin costo.",
+    },
+    {
+      p: "¿Cómo garantizan la calidad de los productos?",
+      r: "Cada cosecha tiene trazabilidad completa: origen, fecha, condiciones de cultivo y estado. Los compradores pueden ver el historial completo antes de hacer un pedido.",
+    },
+    {
+      p: "¿Puedo cancelar un pedido después de hacerlo?",
+      r: "Sí, los compradores pueden cancelar pedidos que estén en estado Pendiente. Una vez aprobado por el agricultor, el pedido no puede cancelarse.",
+    },
+    {
+      p: "¿En qué departamentos de Colombia opera Agronet?",
+      r: "Actualmente operamos en todo el territorio colombiano. Cualquier agricultor con finca registrada puede publicar sus cosechas y recibir pedidos de compradores en todo el país.",
+    },
+    {
+      p: "¿Cómo me pagan como agricultor?",
+      r: "El pago se coordina directamente entre el agricultor y el comprador una vez aprobado el pedido. Agronet gestiona la conexión y la trazabilidad; el proceso de pago es acordado entre las partes.",
+    },
+  ];
+  return (
+    <section
+      style={{
+        padding: "100px 8%",
+        backgroundColor: "#000c00",
+        position: "relative",
+      }}
+    >
+      <h2
+        style={{
+          textAlign: "center",
+          fontSize: "2.5rem",
+          marginBottom: "16px",
+          color: "#fff",
+        }}
+      >
+        Preguntas frecuentes
+      </h2>
+      <p
+        style={{
+          textAlign: "center",
+          color: "#a1a1aa",
+          marginBottom: "60px",
+          fontSize: "1.1rem",
+        }}
+      >
+        Todo lo que necesitas saber antes de empezar.
+      </p>
+      <div
+        style={{
+          maxWidth: "720px",
+          margin: "0 auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: "12px",
+        }}
+      >
+        {preguntas.map((item, i) => (
+          <div
+            key={i}
+            style={{
+              borderRadius: "16px",
+              border:
+                abierto === i
+                  ? "1px solid rgba(74,222,128,0.5)"
+                  : "1px solid rgba(255,255,255,0.08)",
+              overflow: "hidden",
+              transition: "border 0.3s, box-shadow 0.3s",
+              boxShadow:
+                abierto === i ? "0 0 20px rgba(74,222,128,0.1)" : "none",
+            }}
+          >
+            <button
+              onClick={() => setAbierto(abierto === i ? null : i)}
+              style={{
+                width: "100%",
+                padding: "20px 24px",
+                background:
+                  abierto === i
+                    ? "rgba(74,222,128,0.07)"
+                    : "rgba(255,255,255,0.03)",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                color: abierto === i ? "#4ade80" : "#fff",
+                fontSize: "1rem",
+                fontWeight: "600",
+                textAlign: "left",
+                gap: "12px",
+                transition: "background 0.3s, color 0.3s",
+              }}
+            >
+              {item.p}
+              <span
+                style={{
+                  fontSize: "1.3rem",
+                  flexShrink: 0,
+                  display: "inline-block",
+                  transition: "transform 0.3s",
+                  transform: abierto === i ? "rotate(45deg)" : "rotate(0deg)",
+                }}
+              >
+                +
+              </span>
+            </button>
+            {abierto === i && (
+              <div
+                style={{
+                  padding: "0 24px 20px 24px",
+                  color: "#a1a1aa",
+                  lineHeight: "1.7",
+                  fontSize: "0.95rem",
+                  animation: "fadeSlideIn 0.25s ease forwards",
+                }}
+              >
+                {item.r}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ParticleCanvas() {
+  useEffect(() => {
+    const canvas = document.getElementById("agronet-particles");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let W = (canvas.width = window.innerWidth);
+    let H = (canvas.height = window.innerHeight);
+    let animId;
+
+    const particles = Array.from({ length: 72 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.8 + 0.4,
+      dx: (Math.random() - 0.5) * 0.35,
+      dy: (Math.random() - 0.5) * 0.35,
+      alpha: Math.random() * 0.5 + 0.15,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, W, H);
+      particles.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(74,222,128,${p.alpha})`;
+        ctx.fill();
+        p.x += p.dx;
+        p.y += p.dy;
+        if (p.x < 0 || p.x > W) p.dx *= -1;
+        if (p.y < 0 || p.y > H) p.dy *= -1;
+      });
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.strokeStyle = `rgba(74,222,128,${0.12 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    };
+
+    draw();
+    const onResize = () => {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+    };
+    window.addEventListener("resize", onResize);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener("resize", onResize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      id="agronet-particles"
+      style={{
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        pointerEvents: "none",
+        zIndex: 0,
+      }}
+    />
+  );
+}
+
+function AnimatedSection({ children, delay = 0 }) {
+  const [visible, setVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.15 },
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(40px)",
+        transition: `opacity 0.75s ease ${delay}s, transform 0.75s ease ${delay}s`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 function LandingPage({ alIniciarSesion }) {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setVisible(true), 80);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const fadeIn = {
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translateY(0)" : "translateY(28px)",
+    transition: "opacity 0.8s ease, transform 0.8s ease",
+  };
+  const fadeInDelay1 = {
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translateY(0)" : "translateY(28px)",
+    transition: "opacity 0.8s ease 0.2s, transform 0.8s ease 0.2s",
+  };
+  const fadeInDelay2 = {
+    opacity: visible ? 1 : 0,
+    transform: visible ? "translateY(0)" : "translateY(28px)",
+    transition: "opacity 0.8s ease 0.4s, transform 0.8s ease 0.4s",
+  };
+
   return (
     <div
       style={{
@@ -30,21 +292,38 @@ function LandingPage({ alIniciarSesion }) {
         fontFamily: "'Inter', 'Segoe UI', Roboto, sans-serif",
       }}
     >
+      <style>{`
+        @keyframes fadeSlideIn { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(204,255,0,0.3); } 50% { box-shadow: 0 0 0 14px rgba(204,255,0,0); } }
+        @keyframes floatY { 0%,100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
+        @keyframes glowPulse { 0%,100% { opacity:0.5; } 50% { opacity:1; } }
+        .nav-link { color: #ccc; text-decoration: none; font-size: 0.9rem; transition: color 0.2s; }
+        .nav-link:hover { color: #4ade80; }
+        .benefit-card { padding:40px; border-radius:24px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); transition: transform 0.3s, border 0.3s, box-shadow 0.3s; cursor:default; }
+        .benefit-card:hover { transform: translateY(-10px); border: 1px solid rgba(74,222,128,0.4); box-shadow: 0 0 30px rgba(74,222,128,0.12); }
+        .step-card { flex: 1 1 250px; border-left: 2px solid #4ade80; padding-left: 24px; transition: transform 0.3s, border-color 0.3s; }
+        .step-card:hover { transform: translateX(8px); border-color: #ccff00; }
+        .cta-btn { background:#000; color:#fff; padding:20px 50px; border-radius:50px; font-size:1.2rem; font-weight:bold; border:none; cursor:pointer; transition: transform 0.2s, background 0.3s; }
+        .cta-btn:hover { transform: scale(1.06); background: #1a1a1a; }
+      `}</style>
+
       {/* Navbar */}
       <nav
         style={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "20px 8%",
+          padding: "20px 5%",
           position: "fixed",
           width: "100%",
           top: 0,
-          backgroundColor: "rgba(0, 8, 0, 0.8)",
-          backdropFilter: "blur(10px)",
+          backgroundColor: "rgba(0,8,0,0.85)",
+          backdropFilter: "blur(14px)",
           zIndex: 1000,
-          borderBottom: theme.border,
+          borderBottom: "1px solid rgba(74,222,128,0.15)",
           boxSizing: "border-box",
+          flexWrap: "wrap",
+          gap: "10px",
         }}
       >
         <div
@@ -52,41 +331,49 @@ function LandingPage({ alIniciarSesion }) {
             fontSize: "1.5rem",
             fontWeight: "bold",
             color: theme.primary,
+            animation: "floatY 4s ease-in-out infinite",
           }}
         >
           🚜 Agronet
         </div>
-        <div style={{ display: "flex", gap: "30px", alignItems: "center" }}>
-          <a
-            href="#beneficios"
-            style={{
-              color: theme.textMain,
-              textDecoration: "none",
-              fontSize: "0.9rem",
-            }}
-          >
+        <div
+          style={{
+            display: "flex",
+            gap: "20px",
+            alignItems: "center",
+            flexWrap: "wrap",
+          }}
+        >
+          <a href="#beneficios" className="nav-link">
             Beneficios
           </a>
-          <a
-            href="#proceso"
-            style={{
-              color: theme.textMain,
-              textDecoration: "none",
-              fontSize: "0.9rem",
-            }}
-          >
+          <a href="#proceso" className="nav-link">
             Cómo funciona
+          </a>
+          <a href="#faq" className="nav-link">
+            FAQ
           </a>
           <button
             onClick={alIniciarSesion}
             style={{
               backgroundColor: "transparent",
               color: "#fff",
-              border: "1px solid #fff",
-              padding: "8px 20px",
+              border: "1px solid rgba(255,255,255,0.4)",
+              padding: "8px 22px",
               borderRadius: "50px",
               cursor: "pointer",
               fontWeight: "600",
+              transition: "all 0.3s",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = "#4ade80";
+              e.currentTarget.style.color = "#000";
+              e.currentTarget.style.borderColor = "#4ade80";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = "transparent";
+              e.currentTarget.style.color = "#fff";
+              e.currentTarget.style.borderColor = "rgba(255,255,255,0.4)";
             }}
           >
             Iniciar Sesión
@@ -94,7 +381,7 @@ function LandingPage({ alIniciarSesion }) {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero */}
       <section
         style={{
           minHeight: "100vh",
@@ -104,48 +391,119 @@ function LandingPage({ alIniciarSesion }) {
           alignItems: "center",
           textAlign: "center",
           padding: "0 10%",
-          background: `radial-gradient(circle at top, #0a2e0a 0%, ${theme.dark} 70%)`,
+          position: "relative",
+          overflow: "hidden",
+          background: `radial-gradient(ellipse at 50% 0%, #0d3d0d 0%, ${theme.dark} 65%)`,
         }}
       >
-        <h1
+        <ParticleCanvas />
+        <div
           style={{
-            fontSize: "clamp(2.5rem, 8vw, 5rem)",
-            fontWeight: "850",
-            lineHeight: "1.1",
-            marginBottom: "20px",
+            position: "absolute",
+            top: "30%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: "600px",
+            height: "600px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(74,222,128,0.07) 0%, transparent 70%)",
+            animation: "glowPulse 4s ease-in-out infinite",
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div
+            style={{
+              display: "inline-block",
+              padding: "6px 18px",
+              borderRadius: "50px",
+              border: "1px solid rgba(74,222,128,0.4)",
+              backgroundColor: "rgba(74,222,128,0.08)",
+              color: "#4ade80",
+              fontSize: "0.82rem",
+              fontWeight: "600",
+              marginBottom: "28px",
+              letterSpacing: "0.05em",
+              ...fadeIn,
+            }}
+          >
+            🌿 Plataforma agrícola #1 de Colombia
+          </div>
+          <h1
+            style={{
+              fontSize: "clamp(2.5rem, 8vw, 5rem)",
+              fontWeight: "850",
+              lineHeight: "1.1",
+              marginBottom: "20px",
+              ...fadeInDelay1,
+            }}
+          >
+            El campo se mueve rápido. <br />
+            <span
+              style={{
+                color: theme.secondary,
+                textShadow: "0 0 40px rgba(204,255,0,0.35)",
+              }}
+            >
+              Agronet se mueve más rápido.
+            </span>
+          </h1>
+          <p
+            style={{
+              fontSize: "1.2rem",
+              color: theme.textMuted,
+              maxWidth: "700px",
+              margin: "0 auto 40px auto",
+              ...fadeInDelay2,
+            }}
+          >
+            Escala tu negocio agrícola con la plataforma de gestión líder en
+            trazabilidad, rendimiento y conexión directa con el mercado.
+          </p>
+          <div style={{ ...fadeInDelay2 }}>
+            <button
+              onClick={alIniciarSesion}
+              style={{
+                backgroundColor: theme.primary,
+                color: "#000",
+                padding: "18px 40px",
+                borderRadius: "50px",
+                fontSize: "1.1rem",
+                fontWeight: "bold",
+                border: "none",
+                cursor: "pointer",
+                animation: "pulse 2.5s infinite",
+                transition: "transform 0.2s",
+              }}
+              onMouseEnter={(e) =>
+                (e.currentTarget.style.transform = "scale(1.06)")
+              }
+              onMouseLeave={(e) =>
+                (e.currentTarget.style.transform = "scale(1)")
+              }
+            >
+              Comenzar ahora →
+            </button>
+          </div>
+        </div>
+
+        <div
+          style={{
+            position: "absolute",
+            bottom: "36px",
+            left: "50%",
+            transform: "translateX(-50%)",
+            color: "rgba(255,255,255,0.3)",
+            fontSize: "1.5rem",
+            animation: "floatY 2s ease-in-out infinite",
+            zIndex: 1,
           }}
         >
-          El campo se mueve rápido. <br />
-          <span style={{ color: theme.secondary }}>
-            Agronet se mueve más rápido.
-          </span>
-        </h1>
-        <p
-          style={{
-            fontSize: "1.2rem",
-            color: theme.textMuted,
-            maxWidth: "700px",
-            margin: "0 auto 40px auto",
-          }}
-        >
-          Escala tu negocio agrícola con la plataforma de gestión líder en
-          trazabilidad, rendimiento y conexión directa con el mercado.
-        </p>
-        <button
-          onClick={alIniciarSesion}
-          style={{
-            backgroundColor: theme.primary,
-            color: "#000",
-            padding: "18px 40px",
-            borderRadius: "50px",
-            fontSize: "1.1rem",
-            fontWeight: "bold",
-            border: "none",
-            cursor: "pointer",
-          }}
-        >
-          Comenzar ahora
-        </button>
+          ↓
+        </div>
       </section>
 
       {/* Beneficios */}
@@ -153,15 +511,27 @@ function LandingPage({ alIniciarSesion }) {
         id="beneficios"
         style={{ padding: "100px 8%", backgroundColor: theme.dark }}
       >
-        <h2
-          style={{
-            textAlign: "center",
-            fontSize: "2.5rem",
-            marginBottom: "60px",
-          }}
-        >
-          Diseñado para el agricultor moderno
-        </h2>
+        <AnimatedSection>
+          <h2
+            style={{
+              textAlign: "center",
+              fontSize: "2.5rem",
+              marginBottom: "16px",
+            }}
+          >
+            Diseñado para el agricultor moderno
+          </h2>
+          <p
+            style={{
+              textAlign: "center",
+              color: theme.textMuted,
+              marginBottom: "60px",
+              fontSize: "1.1rem",
+            }}
+          >
+            Todo lo que necesitas para gestionar, vender y crecer.
+          </p>
+        </AnimatedSection>
         <div
           style={{
             display: "grid",
@@ -186,23 +556,19 @@ function LandingPage({ alIniciarSesion }) {
               d: "Elimina intermediarios y conecta con compradores finales para mayor utilidad.",
             },
           ].map((b, i) => (
-            <div
-              key={i}
-              style={{
-                padding: "40px",
-                borderRadius: "24px",
-                background: theme.glass,
-                border: theme.border,
-              }}
-            >
-              <div style={{ fontSize: "3rem", marginBottom: "20px" }}>
-                {b.icon}
+            <AnimatedSection key={i} delay={i * 0.15}>
+              <div className="benefit-card">
+                <div style={{ fontSize: "2.5rem", marginBottom: "20px" }}>
+                  {b.icon}
+                </div>
+                <h3 style={{ color: theme.secondary, marginBottom: "15px" }}>
+                  {b.t}
+                </h3>
+                <p style={{ color: theme.textMuted, lineHeight: "1.6" }}>
+                  {b.d}
+                </p>
               </div>
-              <h3 style={{ color: theme.secondary, marginBottom: "15px" }}>
-                {b.t}
-              </h3>
-              <p style={{ color: theme.textMuted, lineHeight: "1.6" }}>{b.d}</p>
-            </div>
+            </AnimatedSection>
           ))}
         </div>
       </section>
@@ -210,23 +576,56 @@ function LandingPage({ alIniciarSesion }) {
       {/* Cómo Funciona */}
       <section
         id="proceso"
-        style={{ padding: "100px 8%", backgroundColor: "#000c00" }}
+        style={{
+          padding: "100px 8%",
+          backgroundColor: "#000c00",
+          position: "relative",
+          overflow: "hidden",
+        }}
       >
-        <h2
+        <div
           style={{
-            textAlign: "center",
-            fontSize: "2.5rem",
-            marginBottom: "60px",
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%,-50%)",
+            width: "500px",
+            height: "300px",
+            borderRadius: "50%",
+            background:
+              "radial-gradient(circle, rgba(204,255,0,0.04) 0%, transparent 70%)",
+            pointerEvents: "none",
           }}
-        >
-          Tu camino al éxito digital
-        </h2>
+        />
+        <AnimatedSection>
+          <h2
+            style={{
+              textAlign: "center",
+              fontSize: "2.5rem",
+              marginBottom: "16px",
+            }}
+          >
+            Tu camino al éxito digital
+          </h2>
+          <p
+            style={{
+              textAlign: "center",
+              color: theme.textMuted,
+              marginBottom: "60px",
+              fontSize: "1.1rem",
+            }}
+          >
+            En tres pasos simples, transforma tu finca en un negocio moderno.
+          </p>
+        </AnimatedSection>
         <div
           style={{
             display: "flex",
             flexWrap: "wrap",
             justifyContent: "space-between",
             gap: "40px",
+            position: "relative",
+            zIndex: 1,
           }}
         >
           {[
@@ -246,25 +645,40 @@ function LandingPage({ alIniciarSesion }) {
               d: "Pon tu producto a la vista de miles de compradores.",
             },
           ].map((p, i) => (
-            <div key={i} style={{ flex: "1 1 250px" }}>
-              <span
-                style={{
-                  fontSize: "4rem",
-                  fontWeight: "800",
-                  color: "rgba(204, 255, 0, 0.1)",
-                  display: "block",
-                }}
-              >
-                {p.n}
-              </span>
-              <h3 style={{ marginTop: "-20px", marginBottom: "10px" }}>
-                {p.t}
-              </h3>
-              <p style={{ color: theme.textMuted }}>{p.d}</p>
-            </div>
+            <AnimatedSection key={i} delay={i * 0.2}>
+              <div className="step-card">
+                <span
+                  style={{
+                    fontSize: "3rem",
+                    fontWeight: "800",
+                    color: "rgba(204,255,0,0.15)",
+                    display: "block",
+                  }}
+                >
+                  {p.n}
+                </span>
+                <h3
+                  style={{
+                    marginTop: "-10px",
+                    marginBottom: "10px",
+                    color: "#fff",
+                  }}
+                >
+                  {p.t}
+                </h3>
+                <p style={{ color: theme.textMuted }}>{p.d}</p>
+              </div>
+            </AnimatedSection>
           ))}
         </div>
       </section>
+
+      {/* FAQ */}
+      <AnimatedSection>
+        <div id="faq">
+          <FaqSection />
+        </div>
+      </AnimatedSection>
 
       {/* CTA Final */}
       <section
@@ -274,49 +688,73 @@ function LandingPage({ alIniciarSesion }) {
           background: `linear-gradient(to bottom, ${theme.dark}, #0a2e0a)`,
         }}
       >
-        <div
-          style={{
-            padding: "80px 40px",
-            borderRadius: "40px",
-            backgroundColor: theme.primary,
-            color: "#000",
-          }}
-        >
-          <h2
+        <AnimatedSection>
+          <div
             style={{
-              fontSize: "3rem",
-              fontWeight: "800",
-              marginBottom: "20px",
+              padding: "80px 40px",
+              borderRadius: "40px",
+              backgroundColor: theme.primary,
+              color: "#000",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            ¿Listo para transformar tu tierra?
-          </h2>
-          <p
-            style={{
-              fontSize: "1.2rem",
-              marginBottom: "40px",
-              fontWeight: "500",
-            }}
-          >
-            Únete a los cientos de agricultores que ya están escalando con
-            Agronet.
-          </p>
-          <button
-            onClick={alIniciarSesion}
-            style={{
-              backgroundColor: "#000",
-              color: "#fff",
-              padding: "20px 50px",
-              borderRadius: "50px",
-              fontSize: "1.2rem",
-              fontWeight: "bold",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            Empezar hoy
-          </button>
-        </div>
+            <div
+              style={{
+                position: "absolute",
+                top: "-40px",
+                right: "-40px",
+                width: "200px",
+                height: "200px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(0,0,0,0.06)",
+                pointerEvents: "none",
+              }}
+            />
+            <div
+              style={{
+                position: "absolute",
+                bottom: "-60px",
+                left: "-30px",
+                width: "250px",
+                height: "250px",
+                borderRadius: "50%",
+                backgroundColor: "rgba(0,0,0,0.04)",
+                pointerEvents: "none",
+              }}
+            />
+            <h2
+              style={{
+                fontSize: "3rem",
+                fontWeight: "800",
+                marginBottom: "20px",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              ¿Listo para transformar tu tierra?
+            </h2>
+            <p
+              style={{
+                fontSize: "1.2rem",
+                marginBottom: "40px",
+                fontWeight: "500",
+                position: "relative",
+                zIndex: 1,
+              }}
+            >
+              Únete a los cientos de agricultores que ya están escalando con
+              Agronet.
+            </p>
+            <button
+              className="cta-btn"
+              onClick={alIniciarSesion}
+              style={{ position: "relative", zIndex: 1 }}
+            >
+              Empezar hoy
+            </button>
+          </div>
+        </AnimatedSection>
       </section>
 
       <footer
@@ -324,7 +762,7 @@ function LandingPage({ alIniciarSesion }) {
           padding: "40px",
           textAlign: "center",
           color: theme.textMuted,
-          borderTop: theme.border,
+          borderTop: "1px solid rgba(74,222,128,0.15)",
         }}
       >
         <p>© 2026 Agronet. Innovación para el campo colombiano.</p>
@@ -332,14 +770,12 @@ function LandingPage({ alIniciarSesion }) {
     </div>
   );
 }
-
 // ================================================================
 // 🧩 MÓDULO COMPRADOR — NUEVO COMPONENTE (no modifica código base)
 // Contiene: Catálogo, Mis Pedidos y Trazabilidad
 // ================================================================
 
 function DashboardComprador({
-  cosechasDisponibles,
   alCerrarSesion,
   containerStyle,
   inputStyle,
@@ -348,6 +784,28 @@ function DashboardComprador({
 }) {
   const [seccionC, setSeccionC] = useState("catalogo");
   const [catalogo, setCatalogo] = useState([]);
+  const [siguienteId, setSiguienteId] = useState(1);
+  const [misPedidos, setMisPedidos] = useState([]);
+  const [trazabilidad, setTrazabilidad] = useState([]);
+  // ✅ CAMBIO A — nuevo estado para datos reales del API
+  const [trazabilidadCliente, setTrazabilidadCliente] = useState([]);
+  const [filtroProducto, setFiltroProducto] = useState("");
+  const [filtroMunicipio] = useState("");
+  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
+  const [cantidadPedido, setCantidadPedido] = useState("");
+  const [filtroEstadoPedido, setFiltroEstadoPedido] = useState("Todos");
+
+  const [fincasMap, setFincasMap] = useState({});
+
+  useEffect(() => {
+    pedidosService
+      .getMisPedidos()
+      .then((data) => {
+        console.log("📦 MIS PEDIDOS (raw):", JSON.stringify(data, null, 2));
+        setMisPedidos(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error("Error al cargar mis pedidos:", err));
+  }, []);
 
   useEffect(() => {
     cosechasService
@@ -356,14 +814,39 @@ function DashboardComprador({
       .catch((err) => console.error("Error al cargar catálogo:", err));
   }, []);
 
-  const [siguienteId, setSiguienteId] = useState(1);
-  const [misPedidos, setMisPedidos] = useState([]);
-  const [trazabilidad, setTrazabilidad] = useState([]);
-  const [filtroProducto, setFiltroProducto] = useState("");
-  const [filtroMunicipio, setFiltroMunicipio] = useState("");
-  const [productoSeleccionado, setProductoSeleccionado] = useState(null);
-  const [cantidadPedido, setCantidadPedido] = useState("");
-  const [filtroEstadoPedido, setFiltroEstadoPedido] = useState("Todos");
+  // ✅ CAMBIO B — useEffect que consume GET /api/Trazabilidad/Cliente
+  useEffect(() => {
+    pedidosService
+      .getTrazabilidadCliente()
+      .then((data) => setTrazabilidadCliente(Array.isArray(data) ? data : []))
+      .catch((err) =>
+        console.error("Error al cargar trazabilidad cliente:", err),
+      );
+  }, []);
+
+  useEffect(() => {
+    fincasService
+      .getAll()
+      .then((data) => {
+        const mapa = {};
+        data.forEach((f) => {
+          const nombre = f.nombre || f.nombreFinca || "";
+          if (nombre) mapa[nombre] = f.municipio || "";
+        });
+        setFincasMap(mapa);
+      })
+      .catch((err) => console.error("Error al cargar fincas:", err));
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      cosechasService
+        .getCatalogo()
+        .then((data) => setCatalogo(data))
+        .catch((err) => console.error("Error al filtrar catálogo:", err));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [filtroProducto]);
 
   const sidebarItemStyle = (activo) => ({
     cursor: "pointer",
@@ -395,7 +878,6 @@ function DashboardComprador({
     );
   };
 
-  // ✅ hacerPedido async — versión limpia sin código muerto
   const hacerPedido = async () => {
     if (!cantidadPedido || Number(cantidadPedido) <= 0)
       return alert("Ingresa una cantidad válida.");
@@ -413,40 +895,51 @@ function DashboardComprador({
     }
   };
 
-  const cancelarPedido = (id) => {
-    const pedido = misPedidos.find((p) => p.id === id);
+  const cancelarPedido = async (id) => {
+    const pedido = misPedidos.find((p) => (p.pedidoId ?? p.id) === id);
     if (!pedido) return;
-    const estadoAnterior = pedido.estado;
-    setMisPedidos(
-      misPedidos.map((p) => (p.id === id ? { ...p, estado: "Cancelado" } : p)),
-    );
-    setTrazabilidad([
-      ...trazabilidad,
-      {
-        id: siguienteId,
-        pedidoId: id,
-        finca: pedido.finca,
-        producto: pedido.productoNombre,
-        estadoAnterior,
-        estadoNuevo: "Cancelado",
-        fecha: new Date().toISOString().split("T")[0],
-        observacion: "Cancelado por el comprador.",
-      },
-    ]);
-    setSiguienteId(siguienteId + 1);
+    const estadoAnterior = pedido.estado ?? pedido.estadoPedido ?? "Pendiente";
+    try {
+      await pedidosService.cancelarPedido(id);
+      setMisPedidos((prev) =>
+        prev.map((p) =>
+          (p.pedidoId ?? p.id) === id ? { ...p, estado: "Cancelado" } : p,
+        ),
+      );
+      setTrazabilidad([
+        ...trazabilidad,
+        {
+          id: siguienteId,
+          pedidoId: id,
+          finca: pedido.fincaNombre ?? pedido.finca ?? "—",
+          producto: pedido.productoNombre ?? pedido.producto ?? "—",
+          estadoAnterior,
+          estadoNuevo: "Cancelado",
+          fecha: new Date().toISOString().split("T")[0],
+          observacion: "Cancelado por el comprador.",
+        },
+      ]);
+      setSiguienteId(siguienteId + 1);
+    } catch (err) {
+      alert("Error al cancelar: " + err.message);
+    }
   };
 
   const catalogoFiltrado = catalogo
     .filter((c) => c.estado === "Disponible")
     .filter((c) =>
-      (c.productoNombre || "")
-        .toLowerCase()
-        .includes(filtroProducto.toLowerCase()),
+      filtroProducto
+        ? (c.productoNombre || "")
+            .toLowerCase()
+            .includes(filtroProducto.toLowerCase())
+        : true,
     )
     .filter((c) =>
-      (c.fincaNombre || "")
-        .toLowerCase()
-        .includes(filtroMunicipio.toLowerCase()),
+      filtroMunicipio
+        ? (fincasMap[c.fincaNombre] || "")
+            .toLowerCase()
+            .includes(filtroMunicipio.toLowerCase())
+        : true,
     );
 
   return (
@@ -458,14 +951,15 @@ function DashboardComprador({
 
       <div
         style={{
-          width: "240px",
+          width: "clamp(140px, 18vw, 240px)",
           background: "rgba(0,0,0,0.55)",
           backdropFilter: "blur(20px)",
-          padding: "30px",
+          padding: "20px",
           display: "flex",
           flexDirection: "column",
           gap: "10px",
           borderRight: "1px solid rgba(255,255,255,0.1)",
+          flexShrink: 0,
         }}
       >
         <h2
@@ -539,12 +1033,6 @@ function DashboardComprador({
                 style={{ ...inputStyle, maxWidth: "240px", marginBottom: 0 }}
                 value={filtroProducto}
                 onChange={(e) => setFiltroProducto(e.target.value)}
-              />
-              <input
-                placeholder="📍 Filtrar por municipio"
-                style={{ ...inputStyle, maxWidth: "240px", marginBottom: 0 }}
-                value={filtroMunicipio}
-                onChange={(e) => setFiltroMunicipio(e.target.value)}
               />
             </div>
 
@@ -682,17 +1170,7 @@ function DashboardComprador({
                     >
                       🏡 {c.fincaNombre}
                     </p>
-                    {c.municipio && (
-                      <p
-                        style={{
-                          margin: 0,
-                          color: "#a1a1aa",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        📍 {c.municipio}
-                      </p>
-                    )}
+
                     <p
                       style={{ margin: 0, color: "#ccc", fontSize: "0.85rem" }}
                     >
@@ -779,7 +1257,7 @@ function DashboardComprador({
                 )
                 .map((p) => (
                   <div
-                    key={p.id}
+                    key={p.pedidoId ?? p.id}
                     style={{
                       ...glassCardStyle,
                       display: "flex",
@@ -796,17 +1274,8 @@ function DashboardComprador({
                     >
                       <div>
                         <h4 style={{ margin: 0, color: "#ccff00" }}>
-                          {p.productoNombre}
+                          {p.productoNombre ?? p.producto ?? "—"}
                         </h4>
-                        <p
-                          style={{
-                            margin: "4px 0 0",
-                            color: "#a1a1aa",
-                            fontSize: "0.82rem",
-                          }}
-                        >
-                          🏡 {p.finca}
-                        </p>
                       </div>
                       {badgeEstado(p.estado)}
                     </div>
@@ -822,24 +1291,22 @@ function DashboardComprador({
                       }}
                     >
                       <span>
-                        📦 Cantidad: <strong>{p.cantidad}</strong>
-                      </span>
-                      <span>
-                        💰 Precio:{" "}
-                        <strong>${p.precio?.toLocaleString()}</strong>
-                      </span>
-                      <span>
-                        🧾 Total:{" "}
-                        <strong style={{ color: "#4ade80" }}>
-                          ${(p.cantidad * p.precio).toLocaleString()}
+                        📦 Cantidad:{" "}
+                        <strong>
+                          {p.cantidadSolicitada ?? p.cantidad ?? "—"}
                         </strong>
                       </span>
                       <span>
-                        📅 Fecha: <strong>{p.fecha}</strong>
+                        🔖 ID:{" "}
+                        <strong style={{ color: "#a1a1aa" }}>
+                          {p.pedidoId ?? p.id}
+                        </strong>
                       </span>
                       <span style={{ gridColumn: "1/-1" }}>
-                        🔖 ID:{" "}
-                        <strong style={{ color: "#a1a1aa" }}>{p.id}</strong>
+                        💰 Total a pagar:{" "}
+                        <strong style={{ color: "#4ade80" }}>
+                          ${(p.totalPagar ?? 0).toLocaleString("es-CO")}
+                        </strong>
                       </span>
                     </div>
                     {p.estado === "Pendiente" && (
@@ -850,7 +1317,7 @@ function DashboardComprador({
                           marginBottom: 0,
                           marginTop: "4px",
                         }}
-                        onClick={() => cancelarPedido(p.id)}
+                        onClick={() => cancelarPedido(p.pedidoId ?? p.id)}
                       >
                         Cancelar pedido
                       </button>
@@ -878,6 +1345,7 @@ function DashboardComprador({
           </div>
         )}
 
+        {/* ✅ CAMBIO C — Sección trazabilidad comprador consume trazabilidadCliente (API real) */}
         {seccionC === "trazabilidad" && (
           <div>
             <header style={{ marginBottom: "32px" }}>
@@ -889,7 +1357,7 @@ function DashboardComprador({
               </p>
             </header>
             <div style={{ display: "grid", gap: "14px" }}>
-              {trazabilidad.length === 0 ? (
+              {trazabilidadCliente.length === 0 ? (
                 <div
                   style={{
                     ...glassCardStyle,
@@ -901,14 +1369,15 @@ function DashboardComprador({
                   No hay registros de trazabilidad aún.
                 </div>
               ) : (
-                [...trazabilidad].reverse().map((t) => (
+                [...trazabilidadCliente].reverse().map((t) => (
                   <div
-                    key={t.id}
+                    key={t.trazabilidadId}
                     style={{
                       ...glassCardStyle,
                       borderLeft: "3px solid #ccff00",
                     }}
                   >
+                    {/* Cabecera: ID Pedido + Fecha */}
                     <div
                       style={{
                         display: "flex",
@@ -919,68 +1388,45 @@ function DashboardComprador({
                         gap: "8px",
                       }}
                     >
-                      <div
+                      <span
                         style={{
-                          display: "flex",
-                          gap: "10px",
-                          alignItems: "center",
+                          color: "#ccff00",
+                          fontWeight: "700",
+                          fontSize: "0.85rem",
                         }}
                       >
-                        <span
-                          style={{
-                            color: "#ccff00",
-                            fontWeight: "700",
-                            fontSize: "0.85rem",
-                          }}
-                        >
-                          ID Pedido: {t.pedidoId}
-                        </span>
-                        <span style={{ color: "#a1a1aa", fontSize: "0.8rem" }}>
-                          📅 {t.fecha}
-                        </span>
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "8px",
-                          fontSize: "0.83rem",
-                        }}
-                      >
-                        <span
-                          style={{
-                            color: "#a0a0a0",
-                            backgroundColor: "rgba(255,255,255,0.06)",
-                            padding: "3px 10px",
-                            borderRadius: "6px",
-                          }}
-                        >
-                          {t.estadoAnterior}
-                        </span>
-                        <span style={{ color: "#a1a1aa" }}>→</span>
-                        {badgeEstado(t.estadoNuevo)}
-                      </div>
+                        ID Pedido: {t.idPedido}
+                      </span>
+                      <span style={{ color: "#a1a1aa", fontSize: "0.8rem" }}>
+                        📅 {t.fechaCambio ? t.fechaCambio.split("T")[0] : "—"}
+                      </span>
                     </div>
+
+                    {/* Estado anterior → nuevo */}
                     <div
                       style={{
-                        display: "grid",
-                        gridTemplateColumns:
-                          "repeat(auto-fit, minmax(160px, 1fr))",
-                        gap: "8px",
-                        fontSize: "0.83rem",
-                        color: "#ccc",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        fontSize: "0.85rem",
                         marginBottom: "10px",
                       }}
                     >
-                      <span>
-                        🏡 Finca:{" "}
-                        <strong style={{ color: "#fff" }}>{t.finca}</strong>
+                      <span
+                        style={{
+                          color: "#a0a0a0",
+                          backgroundColor: "rgba(255,255,255,0.06)",
+                          padding: "3px 10px",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {t.estadoAnterior ?? "—"}
                       </span>
-                      <span>
-                        🌾 Producto:{" "}
-                        <strong style={{ color: "#fff" }}>{t.producto}</strong>
-                      </span>
+                      <span style={{ color: "#a1a1aa" }}>→</span>
+                      {badgeEstado(t.estadoNuevo)}
                     </div>
+
+                    {/* Observación */}
                     {t.observacion && (
                       <div
                         style={{
@@ -1035,9 +1481,26 @@ function App() {
       .catch((error) => {
         console.error("Error al cargar datos de cosechas:", error);
       });
-  }, []);
+  }, [cargarDatosInciales]);
 
-  const [pedidos] = useState([]);
+  const [pedidos, setPedidos] = useState([]);
+  const [trazabilidadAgricultor, setTrazabilidadAgricultor] = useState([]);
+
+  useEffect(() => {
+    if (logeado && rolUsuario === "1") {
+      pedidosService
+        .getPedidosAgricultor()
+        .then((data) => setPedidos(Array.isArray(data) ? data : []))
+        .catch((err) => console.error("Error al cargar pedidos:", err));
+
+      pedidosService
+        .getTrazabilidadAgricultor()
+        .then((data) =>
+          setTrazabilidadAgricultor(Array.isArray(data) ? data : []),
+        )
+        .catch((err) => console.error("Error al cargar trazabilidad:", err));
+    }
+  }, [logeado, rolUsuario]);
 
   const [formData, setFormData] = useState({
     nombre: "",
@@ -1130,6 +1593,10 @@ function App() {
   const [busquedaCosechaNombre, setBusquedaCosechaNombre] = useState("");
   const [busquedaCosechaId, setBusquedaCosechaId] = useState("");
   const [filtroPedido, setFiltroPedido] = useState("Todos");
+
+  // ✅ Estados para el botón de observaciones en Trazabilidad
+  const [actualizacionAbierta, setActualizacionAbierta] = useState(null);
+  const [textoActualizacion, setTextoActualizacion] = useState("");
 
   const containerStyle = {
     fontFamily: '"Segoe UI", Roboto, Helvetica, Arial, sans-serif',
@@ -1505,7 +1972,6 @@ function App() {
   if (logeado && rolUsuario === "2") {
     return (
       <DashboardComprador
-        cosechasDisponibles={cosechas}
         alCerrarSesion={() => {
           setLogeado(false);
           setRolUsuario("");
@@ -1528,14 +1994,15 @@ function App() {
       {/* Sidebar */}
       <div
         style={{
-          width: "260px",
+          width: "clamp(160px, 20vw, 260px)",
           background: "rgba(0,0,0,0.5)",
           backdropFilter: "blur(20px)",
-          padding: "30px",
+          padding: "20px",
           display: "flex",
           flexDirection: "column",
           gap: "20px",
           borderRight: "1px solid rgba(255,255,255,0.1)",
+          flexShrink: 0,
         }}
       >
         <h2 style={{ color: "#4ade80", margin: "0 0 30px 0" }}>Agronet</h2>
@@ -1583,6 +2050,15 @@ function App() {
           >
             📦 Pedidos
           </div>
+          <div
+            style={{
+              cursor: "pointer",
+              color: seccion === "trazabilidad" ? "#4ade80" : "#ccc",
+            }}
+            onClick={() => setSeccion("trazabilidad")}
+          >
+            🔍 Trazabilidad
+          </div>
         </nav>
         <div
           style={{
@@ -1618,17 +2094,6 @@ function App() {
                 marginBottom: "40px",
               }}
             >
-              <div style={glassCardStyle}>
-                <p style={{ color: "#ccc", fontSize: "0.85rem", margin: 0 }}>
-                  Ventas Totales
-                </p>
-                <h2 style={{ fontSize: "1.8rem", margin: "10px 0" }}>
-                  $
-                  {pedidos
-                    .reduce((acc, p) => acc + (p.total || 0), 0)
-                    .toLocaleString()}
-                </h2>
-              </div>
               <div style={glassCardStyle}>
                 <p style={{ color: "#ccc", fontSize: "0.85rem", margin: 0 }}>
                   Cosechas Activas
@@ -1689,13 +2154,20 @@ function App() {
                       .slice(0, 5)
                       .map((p) => (
                         <tr
-                          key={p.id}
+                          key={p.pedidoId ?? p.id}
                           style={{
                             borderBottom: "1px solid rgba(255,255,255,0.1)",
                           }}
                         >
-                          <td style={{ padding: "15px" }}>{p.producto}</td>
-                          <td style={{ padding: "15px" }}>{p.comprador}</td>
+                          <td style={{ padding: "15px" }}>
+                            {p.productoNombre ?? p.producto}
+                          </td>
+                          <td style={{ padding: "15px" }}>
+                            {p.compradorNombre ??
+                              p.usuarioNombre ??
+                              p.comprador ??
+                              "—"}
+                          </td>
                           <td style={{ padding: "15px" }}>
                             <span
                               style={{
@@ -1705,7 +2177,7 @@ function App() {
                                 borderRadius: "8px",
                               }}
                             >
-                              {p.estado}
+                              {p.estado ?? p.estadoPedido}
                             </span>
                           </td>
                         </tr>
@@ -1720,7 +2192,7 @@ function App() {
         {/* SECCIÓN: MIS FINCAS */}
         {seccion === "fincas" && (
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            <div style={{ flex: "1", minWidth: "300px", maxWidth: "400px" }}>
+            <div style={{ flex: "1", minWidth: "260px", maxWidth: "400px" }}>
               <h2 style={{ marginBottom: "20px" }}>
                 {formFinca.id ? "Editar Finca" : "🏡 Nueva Finca"}
               </h2>
@@ -1789,7 +2261,7 @@ function App() {
                 )}
               </div>
             </div>
-            <div style={{ flex: "2", minWidth: "400px" }}>
+            <div style={{ flex: "2", minWidth: "280px" }}>
               <h2 style={{ marginBottom: "20px" }}>Listado de Fincas</h2>
               <div
                 style={{ display: "flex", gap: "10px", marginBottom: "20px" }}
@@ -1876,7 +2348,7 @@ function App() {
         {/* SECCIÓN: COSECHAS */}
         {seccion === "cosechas" && (
           <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-            <div style={{ flex: "1", minWidth: "300px", maxWidth: "400px" }}>
+            <div style={{ flex: "1", minWidth: "260px", maxWidth: "400px" }}>
               <h2 style={{ marginBottom: "20px" }}>
                 {formCosecha.id ? "Editar Cosecha" : "🌱 Nueva Cosecha"}
               </h2>
@@ -1939,28 +2411,30 @@ function App() {
                     setFormCosecha({ ...formCosecha, fecha: e.target.value })
                   }
                 />
-                <select
-                  style={{ ...inputStyle, color: "#333", background: "white" }}
-                  value={formCosecha.estado}
-                  onChange={(e) =>
-                    setFormCosecha({ ...formCosecha, estado: e.target.value })
-                  }
-                >
-                  <option value="Disponible">Disponible</option>
-                  {formCosecha.id && (
-                    <>
-                      <option value="Encrecimiento">En crecimiento</option>
-                      <option value="Vendidad">Vendido</option>
-                      <option value="Cancelada">Cancelado</option>
-                    </>
-                  )}
-                </select>
+                {formCosecha.id && (
+                  <select
+                    style={{
+                      ...inputStyle,
+                      color: "#333",
+                      background: "white",
+                    }}
+                    value={formCosecha.estado}
+                    onChange={(e) =>
+                      setFormCosecha({ ...formCosecha, estado: e.target.value })
+                    }
+                  >
+                    <option value="Disponible">Disponible</option>
+                    <option value="Encrecimiento">En crecimiento</option>
+                    <option value="Vendidad">Vendido</option>
+                    <option value="Cancelada">Cancelado</option>
+                  </select>
+                )}
                 <button style={buttonStyle} onClick={guardarCosecha}>
                   {formCosecha.id ? "Actualizar" : "Publicar"}
                 </button>
               </div>
             </div>
-            <div style={{ flex: "2", minWidth: "400px" }}>
+            <div style={{ flex: "2", minWidth: "280px" }}>
               <h2 style={{ marginBottom: "20px" }}>Listado de Cosechas</h2>
               <div
                 style={{ display: "flex", gap: "10px", marginBottom: "10px" }}
@@ -1976,117 +2450,122 @@ function App() {
                   onChange={(e) => setBusquedaCosechaId(e.target.value)}
                 />
               </div>
-              <table
-                style={{
-                  width: "100%",
-                  borderCollapse: "collapse",
-                  marginTop: "10px",
-                  backgroundColor: "rgba(0,0,0,0.2)",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      borderBottom: "1px solid #444",
-                      textAlign: "left",
-                      fontSize: "0.85rem",
-                      color: theme.secondary,
-                    }}
-                  >
-                    <th style={{ padding: "10px" }}>ID</th>
-                    <th style={{ padding: "10px" }}>Producto</th>
-                    <th style={{ padding: "10px" }}>Finca</th>
-                    <th style={{ padding: "10px" }}>Cant.</th>
-                    <th style={{ padding: "10px" }}>Precio</th>
-                    <th style={{ padding: "10px" }}>Estado</th>
-                    <th style={{ padding: "10px" }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cosechas
-                    .filter(
-                      (c) =>
-                        (c.productoNombre || "")
-                          .toLowerCase()
-                          .includes(busquedaCosechaNombre.toLowerCase()) &&
-                        (c.cosechaId ?? "")
-                          .toString()
-                          .includes(busquedaCosechaId),
-                    )
-                    .map((c) => (
-                      <tr
-                        key={c.id}
-                        style={{
-                          borderBottom: "1px solid rgba(255,255,255,0.05)",
-                          fontSize: "0.85rem",
-                        }}
-                      >
-                        <td style={{ padding: "10px" }}>{c.cosechaId}</td>
-                        <td style={{ padding: "10px" }}>{c.productoNombre}</td>
-                        <td style={{ padding: "10px" }}>{c.fincaNombre}</td>
-                        <td style={{ padding: "10px" }}>
-                          {c.cantidadDisponible}
-                        </td>
-                        <td style={{ padding: "10px" }}>
-                          ${c.precioPorUnidad}
-                        </td>
-                        <td style={{ padding: "10px" }}>
-                          <span
-                            style={{
-                              color:
-                                c.estado === "Disponible"
-                                  ? theme.secondary
-                                  : "#aaa",
-                            }}
-                          >
-                            {c.estado}
-                          </span>
-                        </td>
-                        <td style={{ padding: "10px" }}>
-                          <button
-                            onClick={() => {
-                              const fincaEncontrada = fincas.find(
-                                (f) =>
-                                  (f.nombre || f.nombreFinca) === c.fincaNombre,
-                              );
-                              setFormCosecha({
-                                id: c.cosechaId,
-                                finca: fincaEncontrada
-                                  ? fincaEncontrada.id
-                                  : "",
-                                producto: c.productoNombre,
-                                cantidad: c.cantidadDisponible,
-                                precio: c.precioPorUnidad,
-                                fecha: c.fechaEstimada?.split("T")[0],
-                                estado: c.estado,
-                              });
-                            }}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                            }}
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => eliminarCosecha(c.cosechaId)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              color: "#ff5f5f",
-                            }}
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div style={{ overflowX: "auto" }}>
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    marginTop: "10px",
+                    backgroundColor: "rgba(0,0,0,0.2)",
+                    borderRadius: "10px",
+                    overflow: "hidden",
+                  }}
+                >
+                  <thead>
+                    <tr
+                      style={{
+                        borderBottom: "1px solid #444",
+                        textAlign: "left",
+                        fontSize: "0.85rem",
+                        color: theme.secondary,
+                      }}
+                    >
+                      <th style={{ padding: "10px" }}>ID</th>
+                      <th style={{ padding: "10px" }}>Producto</th>
+                      <th style={{ padding: "10px" }}>Finca</th>
+                      <th style={{ padding: "10px" }}>Cant.</th>
+                      <th style={{ padding: "10px" }}>Precio</th>
+                      <th style={{ padding: "10px" }}>Estado</th>
+                      <th style={{ padding: "10px" }}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cosechas
+                      .filter(
+                        (c) =>
+                          (c.productoNombre || "")
+                            .toLowerCase()
+                            .includes(busquedaCosechaNombre.toLowerCase()) &&
+                          (c.cosechaId ?? "")
+                            .toString()
+                            .includes(busquedaCosechaId),
+                      )
+                      .map((c) => (
+                        <tr
+                          key={c.id}
+                          style={{
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
+                            fontSize: "0.85rem",
+                          }}
+                        >
+                          <td style={{ padding: "10px" }}>{c.cosechaId}</td>
+                          <td style={{ padding: "10px" }}>
+                            {c.productoNombre}
+                          </td>
+                          <td style={{ padding: "10px" }}>{c.fincaNombre}</td>
+                          <td style={{ padding: "10px" }}>
+                            {c.cantidadDisponible}
+                          </td>
+                          <td style={{ padding: "10px" }}>
+                            ${c.precioPorUnidad}
+                          </td>
+                          <td style={{ padding: "10px" }}>
+                            <span
+                              style={{
+                                color:
+                                  c.estado === "Disponible"
+                                    ? theme.secondary
+                                    : "#aaa",
+                              }}
+                            >
+                              {c.estado}
+                            </span>
+                          </td>
+                          <td style={{ padding: "10px" }}>
+                            <button
+                              onClick={() => {
+                                const fincaEncontrada = fincas.find(
+                                  (f) =>
+                                    (f.nombre || f.nombreFinca) ===
+                                    c.fincaNombre,
+                                );
+                                setFormCosecha({
+                                  id: c.cosechaId,
+                                  finca: fincaEncontrada
+                                    ? fincaEncontrada.id
+                                    : "",
+                                  producto: c.productoNombre,
+                                  cantidad: c.cantidadDisponible,
+                                  precio: c.precioPorUnidad,
+                                  fecha: c.fechaEstimada?.split("T")[0],
+                                  estado: c.estado,
+                                });
+                              }}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                              }}
+                            >
+                              ✏️
+                            </button>
+                            <button
+                              onClick={() => eliminarCosecha(c.cosechaId)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                color: "#ff5f5f",
+                              }}
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         )}
@@ -2114,7 +2593,7 @@ function App() {
                 </button>
               ))}
             </div>
-            <div style={glassCardStyle}>
+            <div style={{ ...glassCardStyle, overflowX: "auto" }}>
               <table
                 style={{
                   width: "100%",
@@ -2132,7 +2611,7 @@ function App() {
                     <th style={{ padding: "12px" }}>ID</th>
                     <th style={{ padding: "12px" }}>Comprador</th>
                     <th style={{ padding: "12px" }}>Producto</th>
-                    <th style={{ padding: "12px" }}>Total</th>
+                    <th style={{ padding: "12px" }}>Cantidad</th>
                     <th style={{ padding: "12px" }}>Estado</th>
                     <th style={{ padding: "12px" }}>Acción</th>
                   </tr>
@@ -2141,59 +2620,173 @@ function App() {
                   {pedidos
                     .filter(
                       (p) =>
-                        filtroPedido === "Todos" || p.estado === filtroPedido,
+                        filtroPedido === "Todos" ||
+                        (p.estado ?? p.estadoPedido) === filtroPedido,
                     )
-                    .map((p) => (
-                      <tr
-                        key={p.id}
-                        style={{
-                          borderBottom: "1px solid rgba(255,255,255,0.05)",
-                        }}
-                      >
-                        <td style={{ padding: "12px" }}>{p.id}</td>
-                        <td style={{ padding: "12px" }}>{p.comprador}</td>
-                        <td style={{ padding: "12px" }}>
-                          {p.producto} (x{p.cantidad})
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          ${p.total.toLocaleString()}
-                        </td>
-                        <td style={{ padding: "12px" }}>{p.estado}</td>
-                        <td
+                    .map((p) => {
+                      const pedidoId = p.pedidoId ?? p.id;
+                      const comprador =
+                        p.compradorNombre ??
+                        p.usuarioNombre ??
+                        p.comprador ??
+                        "—";
+                      const producto = p.productoNombre ?? p.producto ?? "—";
+                      const cantidad = p.cantidadSolicitada ?? p.cantidad ?? 0;
+                      const estado = p.estado ?? p.estadoPedido ?? "Pendiente";
+                      return (
+                        <tr
+                          key={pedidoId}
                           style={{
-                            padding: "12px",
-                            display: "flex",
-                            gap: "5px",
+                            borderBottom: "1px solid rgba(255,255,255,0.05)",
                           }}
                         >
-                          <button
-                            style={{
-                              padding: "5px",
-                              borderRadius: "5px",
-                              border: "none",
-                              cursor: "pointer",
-                              backgroundColor: theme.secondary,
-                            }}
-                          >
-                            ✅
-                          </button>
-                          <button
-                            style={{
-                              padding: "5px",
-                              borderRadius: "5px",
-                              border: "none",
-                              cursor: "pointer",
-                              backgroundColor: "#ff5f5f",
-                            }}
-                          >
-                            ❌
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                          <td style={{ padding: "12px" }}>{pedidoId}</td>
+                          <td style={{ padding: "12px" }}>{comprador}</td>
+                          <td style={{ padding: "12px" }}>
+                            {producto} (x{cantidad})
+                          </td>
+                          <td style={{ padding: "12px" }}>{cantidad}</td>
+                          <td style={{ padding: "12px" }}>
+                            <span
+                              style={{
+                                color:
+                                  estado === "Aprobado"
+                                    ? "#4ade80"
+                                    : estado === "Rechazado"
+                                      ? "#ff5f5f"
+                                      : "#ffc800",
+                                backgroundColor:
+                                  estado === "Aprobado"
+                                    ? "rgba(74,222,128,0.15)"
+                                    : estado === "Rechazado"
+                                      ? "rgba(255,95,95,0.15)"
+                                      : "rgba(255,200,0,0.15)",
+                                padding: "4px 12px",
+                                borderRadius: "8px",
+                                fontSize: "0.8rem",
+                                fontWeight: "600",
+                              }}
+                            >
+                              {estado}
+                            </span>
+                          </td>
+                          <td style={{ padding: "12px" }}>
+                            {estado === "Pendiente" ? (
+                              <div style={{ display: "flex", gap: "6px" }}>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await pedidosService.cambiarEstado(
+                                        pedidoId,
+                                        "Aprobado",
+                                      );
+                                      await pedidosService.crearTrazabilidad({
+                                        idPedido: pedidoId,
+                                        estadoNuevo: "Aprobado",
+                                        observacion:
+                                          "Pedido aprobado por el agricultor.",
+                                      });
+                                      setPedidos((prev) =>
+                                        prev.map((x) =>
+                                          (x.pedidoId ?? x.id) === pedidoId
+                                            ? {
+                                                ...x,
+                                                estado: "Aprobado",
+                                                estadoPedido: "Aprobado",
+                                              }
+                                            : x,
+                                        ),
+                                      );
+                                      const nuevaTraz =
+                                        await pedidosService.getTrazabilidadAgricultor();
+                                      setTrazabilidadAgricultor(
+                                        Array.isArray(nuevaTraz)
+                                          ? nuevaTraz
+                                          : [],
+                                      );
+                                    } catch (err) {
+                                      alert("Error al aprobar: " + err.message);
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    backgroundColor: "#4ade80",
+                                    color: "#000",
+                                    fontWeight: "700",
+                                    fontSize: "0.8rem",
+                                  }}
+                                >
+                                  ✅ Aprobar
+                                </button>
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      await pedidosService.cambiarEstado(
+                                        pedidoId,
+                                        "Rechazado",
+                                      );
+                                      await pedidosService.crearTrazabilidad({
+                                        idPedido: pedidoId,
+                                        estadoNuevo: "Rechazado",
+                                        observacion:
+                                          "Pedido rechazado por el agricultor.",
+                                      });
+                                      setPedidos((prev) =>
+                                        prev.map((x) =>
+                                          (x.pedidoId ?? x.id) === pedidoId
+                                            ? {
+                                                ...x,
+                                                estado: "Rechazado",
+                                                estadoPedido: "Rechazado",
+                                              }
+                                            : x,
+                                        ),
+                                      );
+                                      const nuevaTraz =
+                                        await pedidosService.getTrazabilidadAgricultor();
+                                      setTrazabilidadAgricultor(
+                                        Array.isArray(nuevaTraz)
+                                          ? nuevaTraz
+                                          : [],
+                                      );
+                                    } catch (err) {
+                                      alert(
+                                        "Error al rechazar: " + err.message,
+                                      );
+                                    }
+                                  }}
+                                  style={{
+                                    padding: "6px 12px",
+                                    borderRadius: "8px",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    backgroundColor: "#ff5f5f",
+                                    color: "#fff",
+                                    fontWeight: "700",
+                                    fontSize: "0.8rem",
+                                  }}
+                                >
+                                  ❌ Rechazar
+                                </button>
+                              </div>
+                            ) : (
+                              <span
+                                style={{ color: "#a1a1aa", fontSize: "0.8rem" }}
+                              >
+                                Sin acciones
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   {pedidos.filter(
                     (p) =>
-                      filtroPedido === "Todos" || p.estado === filtroPedido,
+                      filtroPedido === "Todos" ||
+                      (p.estado ?? p.estadoPedido) === filtroPedido,
                   ).length === 0 && (
                     <tr>
                       <td
@@ -2210,6 +2803,209 @@ function App() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* SECCIÓN: TRAZABILIDAD — con botón + Actualización */}
+        {seccion === "trazabilidad" && (
+          <div>
+            <header style={{ marginBottom: "32px" }}>
+              <h1 style={{ marginBottom: "6px" }}>🔍 Trazabilidad</h1>
+              <p style={{ color: "#a1a1aa" }}>
+                Historial de cambios de estado de los pedidos de tus cosechas.
+              </p>
+            </header>
+            <div style={{ display: "grid", gap: "14px" }}>
+              {trazabilidadAgricultor.length === 0 ? (
+                <div
+                  style={{
+                    ...glassCardStyle,
+                    textAlign: "center",
+                    color: "#a1a1aa",
+                    padding: "50px",
+                  }}
+                >
+                  No hay registros de trazabilidad aún.
+                </div>
+              ) : (
+                [...trazabilidadAgricultor].reverse().map((t) => (
+                  <div
+                    key={t.trazabilidadId ?? t.id}
+                    style={{
+                      ...glassCardStyle,
+                      borderLeft: "3px solid #4ade80",
+                    }}
+                  >
+                    {/* Cabecera: ID Pedido + Fecha */}
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        marginBottom: "12px",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#4ade80",
+                          fontWeight: "700",
+                          fontSize: "0.85rem",
+                        }}
+                      >
+                        ID Pedido: {t.idPedido ?? t.pedidoId}
+                      </span>
+                      <span style={{ color: "#a1a1aa", fontSize: "0.8rem" }}>
+                        📅 {t.fechaCambio ? t.fechaCambio.split("T")[0] : "—"}
+                      </span>
+                    </div>
+
+                    {/* Estado anterior → nuevo */}
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        fontSize: "0.85rem",
+                        marginBottom: "10px",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "#a0a0a0",
+                          backgroundColor: "rgba(255,255,255,0.06)",
+                          padding: "3px 10px",
+                          borderRadius: "6px",
+                        }}
+                      >
+                        {t.estadoAnterior}
+                      </span>
+                      <span style={{ color: "#a1a1aa" }}>→</span>
+                      <span
+                        style={{
+                          backgroundColor: "rgba(74,222,128,0.15)",
+                          color: "#4ade80",
+                          padding: "4px 12px",
+                          borderRadius: "8px",
+                          fontSize: "0.8rem",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {t.estadoNuevo}
+                      </span>
+                    </div>
+
+                    {/* Observación existente */}
+                    {t.observacion && (
+                      <div
+                        style={{
+                          backgroundColor: "rgba(255,255,255,0.04)",
+                          borderRadius: "8px",
+                          padding: "10px 14px",
+                          fontSize: "0.82rem",
+                          color: "#a1a1aa",
+                          borderLeft: "2px solid rgba(74,222,128,0.3)",
+                          marginBottom: "10px",
+                        }}
+                      >
+                        💬 <em>{t.observacion}</em>
+                      </div>
+                    )}
+
+                    {/* Botón / formulario de actualización */}
+                    {actualizacionAbierta === (t.trazabilidadId ?? t.id) ? (
+                      <div
+                        style={{
+                          display: "flex",
+                          gap: "8px",
+                          marginTop: "8px",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <input
+                          placeholder="Escribe una observación..."
+                          style={{
+                            ...inputStyle,
+                            marginBottom: 0,
+                            flex: 1,
+                            minWidth: "180px",
+                          }}
+                          value={textoActualizacion}
+                          onChange={(e) =>
+                            setTextoActualizacion(e.target.value)
+                          }
+                        />
+                        <button
+                          style={{
+                            ...buttonStyle,
+                            width: "auto",
+                            padding: "8px 16px",
+                            marginBottom: 0,
+                          }}
+                          onClick={async () => {
+                            if (!textoActualizacion.trim())
+                              return alert("Escribe una observación.");
+                            try {
+                              await pedidosService.crearTrazabilidad({
+                                idPedido: t.idPedido ?? t.pedidoId,
+                                estadoNuevo: t.estadoNuevo,
+                                observacion: textoActualizacion,
+                              });
+                              const nuevaTraz =
+                                await pedidosService.getTrazabilidadAgricultor();
+                              setTrazabilidadAgricultor(
+                                Array.isArray(nuevaTraz) ? nuevaTraz : [],
+                              );
+                              setActualizacionAbierta(null);
+                              setTextoActualizacion("");
+                            } catch (err) {
+                              alert("Error: " + err.message);
+                            }
+                          }}
+                        >
+                          Enviar
+                        </button>
+                        <button
+                          style={{
+                            ...buttonStyle,
+                            width: "auto",
+                            padding: "8px 16px",
+                            marginBottom: 0,
+                            backgroundColor: "#444",
+                          }}
+                          onClick={() => {
+                            setActualizacionAbierta(null);
+                            setTextoActualizacion("");
+                          }}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        style={{
+                          ...buttonStyle,
+                          width: "auto",
+                          padding: "6px 14px",
+                          marginBottom: 0,
+                          marginTop: "6px",
+                          backgroundColor: "rgba(74,222,128,0.15)",
+                          color: "#4ade80",
+                          border: "1px solid rgba(74,222,128,0.3)",
+                        }}
+                        onClick={() => {
+                          setActualizacionAbierta(t.trazabilidadId ?? t.id);
+                          setTextoActualizacion("");
+                        }}
+                      >
+                        + Actualización
+                      </button>
+                    )}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
